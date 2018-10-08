@@ -1,7 +1,7 @@
 # BayRepulsive R package
 
 This package provides a tool to implement the BayRepulsive algorithm: a Bayesian repulsive deconvolution model. You can find more information on the algorithm on
- [this support article](http://support.dominodatalab.com/hc/en-us/articles/204856475-Installing-the-Domino-Client-CLI-).
+ [BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity](http://support.dominodatalab.com/hc/en-us/articles/204856475-Installing-the-Domino-Client-CLI-).
 
 ## Installation
 
@@ -37,7 +37,7 @@ cor(as.vector(result1$W), as.vector(CCLE$W))
 
 Full documentation and usage information is available in the manual:
 
-* [Release 0.3.0](https://github.com/dominodatalab/r-package/blob/master/man/domino-manual-0.3.0.pdf)
+* [BayRepulsive.pdf](https://github.com/bruce1995/BayRepulsive/blob/master/BayRepulsive.pdf)
 
 
 ## License
