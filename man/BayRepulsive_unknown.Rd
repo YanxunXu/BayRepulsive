@@ -2,12 +2,14 @@
 % Please edit documentation in R/BayRepulsive.R
 \name{BayRepulsive_unknown}
 \alias{BayRepulsive_unknown}
-\title{BayRepulsive_unknown is the NMF function used when the number of subclones is unknown}
+\title{BayRepulsive_unknown is a deconvolution function designed for inferring tumor heterogeneity,
+used when the number of subclones is unknown.}
 \source{
-BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Latent Biologic Structure
+BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity
 }
 \usage{
-BayRepulsive_unknown(Datause, K_min, K_max, Nobs, Nfeature, Niter = 100, epsilon = 0.0001,tau = 100, seed = 1 )
+BayRepulsive_unknown(Datause, K_min, K_max, Nobs, Nfeature,
+                      Niter = 100, epsilon = 0.0001,tau = 100, seed = 1 )
 }
 \arguments{
 \item{Datause}{The observed data matrix. Each row is a sample.}
@@ -22,29 +24,57 @@ BayRepulsive_unknown(Datause, K_min, K_max, Nobs, Nfeature, Niter = 100, epsilon
 
 \item{Niter}{The number of maximum iterations}
 
-\item{epsilon}{break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon}
+\item{epsilon}{Break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon}
 
 \item{tau}{The hyperparameter for DPP, a large number is prefered, default value is 100}
 
 \item{seed}{The random seed, default as 1}
 }
 \value{
-W, the estiamted signature matrix.
+\code{W}      the estiamted signature matrix.
 
-Z, and the estiamted number of subclones.
+\code{Z}      and the estiamted number of subclones.
 
-K, the estimated number of subclones.
+\code{K}      the estimated number of subclones.
 }
 \description{
-Takes in the observed data matrix, the range of number of subclones, the number of features and samples
-Gives the estimation of the NMF, including the estimated number of subclones.
+Takes in the observed data matrix, the range of number of subclones, the number of features and samples,
+gives the estimation of the NMF, including the estimated number of subclones.
 }
 \details{
 Given an observed matrix, whose rows are mixed samples of unknown number of subclones,
-we give an estimation of number of subclones, and do the NMF.
+we give an estimation of number of subclones along with NMF results.
 
-This function will create a bunch of globel variables, named "Datause", "Nobs", "Nfeature", "sigma0",
-"mu0", "K", "Theta", "W.star", "Z.star",  "W_temp", "sigma.square", "data.now", "Z.now", "i".
+This function will create a bunch of globel variables, named \code{Datause}, \code{Nobs}, \code{Nfeature}, \code{sigma0},
+\code{mu0}, \code{K}, \code{Theta}, \code{W.star}, \code{Z.star},  \code{W_temp}, \code{sigma.square}, \code{data.now}, \code{Z.now}, \code{i}.
 Thus, users should avoid these variable names when using BayRepulsive_unknown, if they don't want the variables to be overwritten.
-Especially "i", which is commonly used in loops.
+Especially \code{i}, which is commonly used in loops.
 }
+\examples{
+rm(list=ls())
+library(BayRepulsive)
+data(CCLE)
+set.seed(1)
+Nobs     <- dim(CCLE$DATA)[1]
+Nfeature <- dim(CCLE$DATA)[2]
+error    <- matrix(rnorm(Nobs * Nfeature, mean = 0, sd = 0.1), nrow = Nobs)
+DATA     <- CCLE$DATA + error
+DATA     <- pmax(DATA,0)
+result1  <- BayRepulsive_unknown(Datause = DATA, K_min = 2, K_max = 6, Nobs = Nobs,
+                                 Nfeature = Nfeature)
+cor(as.vector(result1$W), as.vector(CCLE$W))
+#----------------
+rm(list=ls())
+library(BayRepulsive)
+data(Inhouse)
+Nobs      <- dim(Inhouse$DATA)[1]
+Nfeature  <- dim(Inhouse$DATA)[2]
+result1   <- BayRepulsive_unknown(Datause = Inhouse$DATA, K_min = 2, K_max = 6, Nobs = Nobs,
+                                Nfeature = Nfeature, seed = 12)
+# handle the label swithing issue
+W_est     <- result1$W
+W_est[,1] <- result1$W[,2]
+W_est[,2] <- result1$W[,1]
+cor(as.vector(W_est), as.vector(Inhouse$W))
+}
+\keyword{functions}

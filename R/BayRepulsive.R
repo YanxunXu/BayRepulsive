@@ -168,31 +168,60 @@ update.sigma<-function(W,Z,DATA){
 #############
 
 
-#' BayRepulsive_unknown is the NMF function used when the number of subclones is unknown
+#' BayRepulsive_unknown is a deconvolution function designed for inferring tumor heterogeneity,
+#' used when the number of subclones is unknown.
 #'
-#' Takes in the observed data matrix, the range of number of subclones, the number of features and samples
-#' Gives the estimation of the NMF, including the estimated number of subclones.
-#' @usage BayRepulsive_unknown(Datause, K_min, K_max, Nobs, Nfeature, Niter = 100, epsilon = 0.0001,tau = 100, seed = 1 )
+#' Takes in the observed data matrix, the range of number of subclones, the number of features and samples,
+#' gives the estimation of the NMF, including the estimated number of subclones.
+#' @usage BayRepulsive_unknown(Datause, K_min, K_max, Nobs, Nfeature,
+#'                       Niter = 100, epsilon = 0.0001,tau = 100, seed = 1 )
 #' @param Datause  The observed data matrix. Each row is a sample.
 #' @param K_min The minimum number of subclones
 #' @param K_max The Maximum number of subclones
 #' @param Nobs The number of samples, i.e., the number of rows of the Datause
 #' @param Nfeature The number of features, i.e., the number of columns of the Datause
 #' @param Niter The number of maximum iterations
-#' @param epsilon break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon
+#' @param epsilon Break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon
 #' @param tau The hyperparameter for DPP, a large number is prefered, default value is 100
 #' @param seed The random seed, default as 1
-#' @return W, the estiamted signature matrix.
-#' @return Z, and the estiamted number of subclones.
-#' @return K, the estimated number of subclones.
+#' @return \code{W}      the estiamted signature matrix.
+#' @return \code{Z}      and the estiamted number of subclones.
+#' @return \code{K}      the estimated number of subclones.
 #' @details Given an observed matrix, whose rows are mixed samples of unknown number of subclones,
-#' we give an estimation of number of subclones, and do the NMF.
+#' we give an estimation of number of subclones along with NMF results.
 #'
-#' This function will create a bunch of globel variables, named "Datause", "Nobs", "Nfeature", "sigma0",
-#' "mu0", "K", "Theta", "W.star", "Z.star",  "W_temp", "sigma.square", "data.now", "Z.now", "i".
+#' This function will create a bunch of globel variables, named \code{Datause}, \code{Nobs}, \code{Nfeature}, \code{sigma0},
+#' \code{mu0}, \code{K}, \code{Theta}, \code{W.star}, \code{Z.star},  \code{W_temp}, \code{sigma.square}, \code{data.now}, \code{Z.now}, \code{i}.
 #' Thus, users should avoid these variable names when using BayRepulsive_unknown, if they don't want the variables to be overwritten.
-#' Especially "i", which is commonly used in loops.
-#' @source BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Latent Biologic Structure
+#' Especially \code{i}, which is commonly used in loops.
+#' @source BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity
+#' @examples
+#' rm(list=ls())
+#' library(BayRepulsive)
+#' data(CCLE)
+#' set.seed(1)
+#' Nobs     <- dim(CCLE$DATA)[1]
+#' Nfeature <- dim(CCLE$DATA)[2]
+#' error    <- matrix(rnorm(Nobs * Nfeature, mean = 0, sd = 0.1), nrow = Nobs)
+#' DATA     <- CCLE$DATA + error
+#' DATA     <- pmax(DATA,0)
+#' result1  <- BayRepulsive_unknown(Datause = DATA, K_min = 2, K_max = 6, Nobs = Nobs,
+#'                                  Nfeature = Nfeature)
+#' cor(as.vector(result1$W), as.vector(CCLE$W))
+#' #----------------
+#' rm(list=ls())
+#' library(BayRepulsive)
+#' data(Inhouse)
+#' Nobs      <- dim(Inhouse$DATA)[1]
+#' Nfeature  <- dim(Inhouse$DATA)[2]
+#' result1   <- BayRepulsive_unknown(Datause = Inhouse$DATA, K_min = 2, K_max = 6, Nobs = Nobs,
+#'                                 Nfeature = Nfeature, seed = 12)
+#' # handle the label swithing issue
+#' W_est     <- result1$W
+#' W_est[,1] <- result1$W[,2]
+#' W_est[,2] <- result1$W[,1]
+#' cor(as.vector(W_est), as.vector(Inhouse$W))
+#' @keywords functions
 #' @export
 BayRepulsive_unknown<-function(Datause, K_min, K_max, Nobs, Nfeature, Niter = 100, epsilon = 0.0001, tau = 100, seed = 1 ){
   library(mvtnorm)
@@ -277,16 +306,13 @@ BayRepulsive_unknown<-function(Datause, K_min, K_max, Nobs, Nfeature, Niter = 10
   return(list(W=W, Z=Z, k =k_star))
 }
 
-
-
-
-
-
-#' BayRepulsive_known is the NMF function used when the number of subclones is known
+#-------------
+#' BayRepulsive_known is a deconvolution function designed for inferring tumor heterogeneity, used when the number of subclones is known.
 #'
-#' Takes in the observed data matrix, the number of subclones, the number of features and samples.
-#' Gives the estiamted NMF result.
-#' @usage BayRepulsive_known(Datause, K, Nobs, Nfeature,Niter = 100, epsilon = 0.0001, tau = 100, seed = 1 )
+#' Takes in the observed data matrix, the number of subclones, the number of features and samples,
+#' gives the estiamted NMF results.
+#' @usage BayRepulsive_known(Datause, K, Nobs, Nfeature,
+#'                   Niter = 100, epsilon = 0.0001, tau = 100, seed = 1 )
 #' @param Datause  The observed data matrix. Each row is a sample.
 #' @param K The number of subclones
 #' @param Nobs The number of samples, i.e., the number of rows of the Datause
@@ -295,17 +321,45 @@ BayRepulsive_unknown<-function(Datause, K_min, K_max, Nobs, Nfeature, Niter = 10
 #' @param epsilon break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon
 #' @param tau The hyperparameter for DPP, a large number is prefered, default value is 100
 #' @param seed The random seed, default as 1
-#' @return W, the estiamted signature matrix.
-#' @return Z, and the estiamted number of subclones.
-#' @return C, an measure of performance for NMF.
-#' @details Given an observed matrix, whose rows are mixed samples of unknown number of subclones,
-#' we give an estimation of number of subclones, and do the NMF.
+#' @return \code{W}      the estiamted signature matrix.
+#' @return \code{Z}      the estiamted proportion matrix.
+#' @return \code{C}      sum of estimated square error used as measure of performance for deconvolution.
+#' @details Given an observed matrix, whose rows are mixed samples of unknown number of subclones, returns the
+#' results of NMF.
 #'
-#' This function will create a bunch of globel variables, named "Datause", "Nobs", "Nfeature", "sigma0",
-#' "mu0", "K", "Theta", "W.star", "Z.star",  "W_temp", "sigma.square", "data.now", "Z.now", "i".
+#' This function will create a bunch of globel variables, named \code{Datause}, \code{Nobs}, \code{Nfeature}, \code{sigma0},
+#' \code{mu0}, \code{K}, \code{Theta}, \code{W.star}, \code{Z.star},  \code{W_temp}, \code{sigma.square}, \code{data.now}, \code{Z.now}, \code{i}.
 #' Thus, users should avoid these variable names when using BayRepulsive_unknown, if they don't want the variables to be overwritten.
-#' Especially "i", which is commonly used in loops.
-#' @source BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Latent Biologic Structure
+#' Especially \code{i}, which is commonly used in loops.
+#' @source BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity
+#' @examples
+#' rm(list=ls())
+#' library(BayRepulsive)
+#' data(CCLE)
+#' set.seed(1)
+#' Nobs     <- dim(CCLE$DATA)[1]
+#' Nfeature <- dim(CCLE$DATA)[2]
+#' error    <- matrix(rnorm(Nobs * Nfeature, mean = 0, sd = 0.1), nrow = Nobs)
+#' DATA     <- CCLE$DATA + error
+#' DATA     <- pmax(DATA,0)
+#' result1  <- BayRepulsive_known(Datause = DATA, K = 3, Nobs = Nobs,
+#'                                Nfeature = Nfeature)
+#' cor(as.vector(result1$W), as.vector(CCLE$W))
+#'
+#' #----------------
+#' rm(list=ls())
+#' library(BayRepulsive)
+#' data(Inhouse)
+#' Nobs      <- dim(Inhouse$DATA)[1]
+#' Nfeature  <- dim(Inhouse$DATA)[2]
+#' result1   <- BayRepulsive_known(Datause = Inhouse$DATA, K=3, Nobs = Nobs,
+#'                                 Nfeature = Nfeature, seed = 12)
+#' # handle the label swithing issue
+#' W_est     <- result1$W
+#' W_est[,1] <- result1$W[,2]
+#' W_est[,2] <- result1$W[,1]
+#' cor(as.vector(W_est), as.vector(Inhouse$W))
+#' @keywords functions
 #' @export
 BayRepulsive_known<-function(Datause, K, Nobs, Nfeature, Niter = 100, epsilon = 0.0001, tau = 100, seed = 1 ){
   library(mvtnorm)
