@@ -3,78 +3,85 @@
 \name{BayRepulsive_unknown}
 \alias{BayRepulsive_unknown}
 \title{BayRepulsive_unknown is a deconvolution function designed for inferring tumor heterogeneity,
-used when the number of subclones is unknown.}
+when the number of subclones is unknown.}
 \source{
 BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity
 }
 \usage{
-BayRepulsive_unknown(Datause, K_min, K_max, Nobs, Nfeature,
-                      Niter = 100, epsilon = 0.0001,tau = 100, seed = 1 )
+BayRepulsive_unknown(DATA, K_min, K_max, Nobs, Nfeature,
+                      Niter = 100, epsilon = 0.0001, tau = 100,
+                      a.theta = 0.01, b.theta = 0.01, seed = 1 )
 }
 \arguments{
-\item{Datause}{The observed data matrix. Each row is a sample.}
+\item{DATA}{The observed data matrix. Each row represents a feature (gene); each column represents a sample.}
 
-\item{K_min}{The minimum number of subclones}
+\item{K_min}{The minimum number of subclones.}
 
-\item{K_max}{The Maximum number of subclones}
+\item{K_max}{The Maximum number of subclones.}
 
-\item{Nobs}{The number of samples, i.e., the number of rows of the Datause}
+\item{Nobs}{The number of samples, i.e., the number of columns of the \code{DATA}.}
 
-\item{Nfeature}{The number of features, i.e., the number of columns of the Datause}
+\item{Nfeature}{The number of features, i.e., the number of rows of the \code{DATA}.}
 
-\item{Niter}{The number of maximum iterations}
+\item{Niter}{The number of maximum iterations.}
 
-\item{epsilon}{Break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon}
+\item{epsilon}{Tolerance for convergence. We determine whether to break based on the estimated weight matrix.
+We decide to break if the distance induced by L2 norm between two successive estimated weight matrices is less than epsilon.}
 
-\item{tau}{The hyperparameter for DPP, a large number is prefered, default value is 100}
+\item{tau}{The hyperparameter for DPP. A large number is preferred. See \code{\link{BayRepulsive_known}} for more detials.}
 
-\item{seed}{The random seed, default as 1}
+\item{a.theta}{The hyperparameter for DPP. See \code{\link{BayRepulsive_known}} for more detials.}
+
+\item{b.theta}{The hyperparameter for DPP. See \code{\link{BayRepulsive_known}} for more detials.}
+
+\item{seed}{The random seed.}
 }
 \value{
-\code{W}      the estiamted signature matrix.
-
-\code{Z}      and the estiamted number of subclones.
-
-\code{K}      the estimated number of subclones.
+A list of following components:
+\tabular{llllllllllllll}{
+\tab \code{Z} \tab  \tab  \tab    The estimated subclone-specific expression matrix.\tab  \tab  \tab \tab  \tab  \tab \tab  \tab  \tab    \cr
+\tab \code{W} \tab  \tab  \tab    The estimated weight matrix. \tab  \tab  \tab \tab  \tab  \tab  \tab  \tab  \tab  \cr
+\tab \code{K_hat} \tab  \tab  \tab    The number of estimated subclones.\tab  \tab  \tab  \tab  \tab  \tab \tab  \tab  \tab
+}
 }
 \description{
-Takes in the observed data matrix, the range of number of subclones, the number of features and samples,
-gives the estimation of the NMF, including the estimated number of subclones.
+This function gives the estimated number of subclones, along with deconvolution results of the observed matrix.
 }
 \details{
-Given an observed matrix, whose rows are mixed samples of unknown number of subclones,
-we give an estimation of number of subclones along with NMF results.
+Given an observed matrix, whose columns are mixed samples of unknown number of subclones,
+this function gives an estimation of number of subclones along with deconvolution results.
 
-This function will create a bunch of globel variables, named \code{Datause}, \code{Nobs}, \code{Nfeature}, \code{sigma0},
-\code{mu0}, \code{K}, \code{Theta}, \code{W.star}, \code{Z.star},  \code{W_temp}, \code{sigma.square}, \code{data.now}, \code{Z.now}, \code{i}.
-Thus, users should avoid these variable names when using BayRepulsive_unknown, if they don't want the variables to be overwritten.
-Especially \code{i}, which is commonly used in loops.
+We first use the algorithm in \code{\link{BayRepulsive_known}} to fit the data for every possible number of subclones.
+Let \eqn{S(k)} denote the square sum of the residuals when the number of subclones is fixed at \eqn{k}.
+We define the second-order finite difference \eqn{\Delta^2 S(k)}{Delta^2 S(k)} of the residual by
+\eqn{\Delta^2S(k) = [S(k+1)-S(k)]-[S(k)-S(k-1)]}{Delta^2(k) = [S(k+1)-S(k)]-[S(k)-S(k-1)]}, for \eqn{k=K_{min}+1,\dots,K_{max}-1}{k=Kmin+1,...,Kmax-1}.
+Then the optimal \eqn{\hat{K}} estimated by BayRepulsive is
+\deqn{\hat{K}=\mathrm{arg max}_k \Delta^2 S(k).}{\hat{K} = argmin Delta^2 S(k).}
+And the deconvolution results are the corresponding results when the number of subclones is fixed at \eqn{\hat{K}}.
 }
 \examples{
 rm(list=ls())
 library(BayRepulsive)
 data(CCLE)
 set.seed(1)
-Nobs     <- dim(CCLE$DATA)[1]
-Nfeature <- dim(CCLE$DATA)[2]
-error    <- matrix(rnorm(Nobs * Nfeature, mean = 0, sd = 0.1), nrow = Nobs)
-DATA     <- CCLE$DATA + error
-DATA     <- pmax(DATA,0)
-result1  <- BayRepulsive_unknown(Datause = DATA, K_min = 2, K_max = 6, Nobs = Nobs,
+Nobs     <- 24
+Nfeature <- 100
+K0       <- 3
+### randomly generate weight matrix W for 24 mixing samples
+W        <- matrix(0,nrow = K0, ncol = Nobs)
+for(i in 1:Nobs){
+  Theta <- rgamma(K0,1/K0,1)
+  W[,i] <- Theta/sum(Theta)
+}
+### add some noise
+error    <- t(matrix(rnorm(Nfeature * Nobs, mean = 0, sd = 0.5), nrow = Nobs))
+DATA     <- CCLE$Z\%*\%W + error
+### Note: please make sure that there are no negative values after adding the noise
+result1  <- BayRepulsive_unknown(DATA = DATA, K_min = 2, K_max = 6, Nobs = Nobs,
                                  Nfeature = Nfeature)
-cor(as.vector(result1$W), as.vector(CCLE$W))
-#----------------
-rm(list=ls())
-library(BayRepulsive)
-data(Inhouse)
-Nobs      <- dim(Inhouse$DATA)[1]
-Nfeature  <- dim(Inhouse$DATA)[2]
-result1   <- BayRepulsive_unknown(Datause = Inhouse$DATA, K_min = 2, K_max = 6, Nobs = Nobs,
-                                Nfeature = Nfeature, seed = 12)
-# handle the label swithing issue
-W_est     <- result1$W
-W_est[,1] <- result1$W[,2]
-W_est[,2] <- result1$W[,1]
-cor(as.vector(W_est), as.vector(Inhouse$W))
+cor(as.vector(result1$W), as.vector(W))
+}
+\seealso{
+\code{\link{BayRepulsive_known}}
 }
 \keyword{functions}

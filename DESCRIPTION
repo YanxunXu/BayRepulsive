@@ -1,13 +1,14 @@
 Package: BayRepulsive
 Type: Package
-Title: BayRepulsive: A Bayesian Repulsive Deconvolution Model
+Title: BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity
 Version: 0.1.0
 Date: 2018-10-07
-Depends: mvtnorm, alabama, psych, optimx
+Depends: mvtnorm, alabama, psych, optimx, Rdpack
 Author: Yuliang Li and Yanxun Xu
 Maintainer: Yuliang Li <yli193@jhu.edu>
-Description: A Non-negative Matrix Factorization (NMF) with repulsiveness introduced by determinantal point process (DPP).
-License: JHU
+Description: A Bayesian matrix factorization model making use of the determinantal point process as a prior on latent factors to induce repulsiveness among them. 
+License: Johns Hopkins University
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
+RdMacros: Rdpack

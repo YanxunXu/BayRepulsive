@@ -1,22 +1,23 @@
-#' CCLE
+#' The CCLE Dataset
 #'
-#' This dataset was generated from the pure cell line expression data from CCLE .
+#' This dataset is the pure cell line expression from \emph{Cancer Cell Line Encyclopedia} (CCLE) \insertCite{barretina2012cancer}{BayRepulsive}.
 #' @docType data
 #' @name CCLE
 #' @usage data(CCLE)
-#' @format This is a data frame with three components: (a) the pure cell line expression, (b) the sample proportion, (c) the mixed data.
-#' Z: the pure cell line expression of three cancer cell lines -- NCIH524_LUNG, NCIH209_LUNG, SBC5_LUNG. Each line is for one cancer cell line. We selected top 100 differentially expressed gene.
-#' W: the sample proportion. Each row is the proportion of one sample. We used this sample porportion to mix 24 mixed samples.
-#' DATA: the mixed data. Each line is the gene expression for one sample. DATA = WZ.
+#' @format From the CCLE dataset, we randomly chose three lung-related cell lines, NCIH524_LUNG, NCIH209_LUNG and SBC5_LUNG.
+#' We then selected the top 100 differentially expressed genes by ranking the standard deviations of genes across pure samples. The expression levels of these 100 genes in the selected three cell lines compose our simluated \code{Z} matrix.
+#' This is a data frame with one components: the pure cell line expression, \code{Z}.
 #'
 #' @examples
 #' # import the data
 #' data(CCLE)
-#' # get the mixed data
-#' CCLE$DATA
+
 #' # get the gene expression level of pure cell line
 #' CCLE$Z
-#' # get the proportion
-#' CCLE$W
+#' # get the name of cell lines included in the dataset
+#' colnames(CCLE$Z)
 #' @keywords datasets
+#'
+#' @references
+#' \insertRef{barretina2012cancer}{BayRepulsive}
 NULL

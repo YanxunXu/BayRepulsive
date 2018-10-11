@@ -1,7 +1,6 @@
 # BayRepulsive R package
 
-This package provides a tool to implement the BayRepulsive algorithm: a Bayesian repulsive deconvolution model. You can find more information on the algorithm on
- [BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity](http://support.dominodatalab.com/hc/en-us/articles/204856475-Installing-the-Domino-Client-CLI-).
+This package provides a tool to implement the BayRepulsive algorithm: a Bayesian repulsive deconvolution model. 
 
 ## Installation
 
@@ -18,18 +17,26 @@ Before using the package, please make sure that R packages "mvtnorm", "alabama",
 ## Usage
 
 ```R
+rm(list=ls())
 library(BayRepulsive)
-
 data(CCLE)
 set.seed(1)
-Nobs     <- dim(CCLE$DATA)[1]
-Nfeature <- dim(CCLE$DATA)[2]
-error    <- matrix(rnorm(Nobs * Nfeature, mean = 0, sd = 0.1), nrow = Nobs)
-DATA     <- CCLE$DATA + error
-DATA     <- pmax(DATA,0)
-result1  <- BayRepulsive_known(Datause = DATA, K = 3, Nobs = Nobs,
-                                   Nfeature = Nfeature)
-cor(as.vector(result1$W), as.vector(CCLE$W))
+Nobs     <- 24
+Nfeature <- 100
+K0       <- 3
+### randomly generate weight matrix W for 24 mixing samples
+W        <- matrix(0,nrow = K0, ncol = Nobs)
+for(i in 1:Nobs){
+  Theta <- rgamma(K0,1/K0,1)
+  W[,i] <- Theta/sum(Theta)
+}
+### add some noise
+error    <- t(matrix(rnorm(Nfeature * Nobs, mean = 0, sd = 0.5), nrow = Nobs))
+DATA     <- CCLE$Z%*%W + error
+### Note: please make sure that there are no negative values after adding the noise
+result1  <- BayRepulsive_known(DATA = DATA, K = K0, Nobs = Nobs,
+                               Nfeature = Nfeature)
+cor(as.vector(result1$W), as.vector(W))
 
 
 
@@ -42,4 +49,4 @@ Full documentation and usage information is available in the manual:
 
 ## License
 
-This library is made available under the JHU License. This is an open-source project of Yanxun's lab.
+This library is made available under the Johns Hopkins University License. This is an open-source project of Yanxun's lab.

@@ -2,77 +2,97 @@
 % Please edit documentation in R/BayRepulsive.R
 \name{BayRepulsive_known}
 \alias{BayRepulsive_known}
-\title{BayRepulsive_known is a deconvolution function designed for inferring tumor heterogeneity, used when the number of subclones is known.}
+\title{BayRepulsive_known is a deconvolution function designed for inferring tumor heterogeneity, when the number of subclones is known.}
 \source{
 BayRepulsive: A Bayesian Repulsive Deconvolution Model for Inferring Tumor Heterogeneity
 }
 \usage{
-BayRepulsive_known(Datause, K, Nobs, Nfeature,
-                  Niter = 100, epsilon = 0.0001, tau = 100, seed = 1 )
+BayRepulsive_known(DATA, K, Nobs, Nfeature,
+                  Niter = 100, epsilon = 0.0001, tau = 100,
+                  a.theta = 0.01, b.theta = 0.01, seed = 1 )
 }
 \arguments{
-\item{Datause}{The observed data matrix. Each row is a sample.}
+\item{DATA}{The observed data matrix. Each row represents a feature (gene); each column represents a sample.}
 
-\item{K}{The number of subclones}
+\item{K}{The number of subclones.}
 
-\item{Nobs}{The number of samples, i.e., the number of rows of the Datause}
+\item{Nobs}{The number of samples, i.e., the number of columns of the \code{DATA}.}
 
-\item{Nfeature}{The number of features, i.e., the number of columns of the Datause}
+\item{Nfeature}{The number of features, i.e., the number of rows of the \code{DATA}.}
 
-\item{Niter}{The number of maximum iterations}
+\item{Niter}{The number of maximum iterations.}
 
-\item{epsilon}{break if the L2 distance of the two estiamted proportion matrix in row is less than epsilon}
+\item{epsilon}{Tolerance for convergence. We determine whether to break based on the estimated weight matrix.
+We decide to break if the distance induced by L2 norm between two successive estimated weight matrices is less than epsilon.}
 
-\item{tau}{The hyperparameter for DPP, a large number is prefered, default value is 100}
+\item{tau}{The hyperparameter for DPP. A large number is preferred. See more in \strong{Details}.}
 
-\item{seed}{The random seed, default as 1}
+\item{a.theta}{The hyperparameter for DPP. See more in \strong{Details}.}
+
+\item{b.theta}{The hyperparameter for DPP. See more in \strong{Details}.}
+
+\item{seed}{The random seed.}
 }
 \value{
-\code{W}      the estiamted signature matrix.
-
-\code{Z}      the estiamted proportion matrix.
-
-\code{C}      sum of estimated square error used as measure of performance for deconvolution.
+A list of following components:
+\tabular{lllllllllll}{
+\tab \code{Z} \tab  \tab  \tab    The estimated subclone-specific expression matrix.\tab  \tab  \tab \tab  \tab  \tab    \cr
+\tab \code{W} \tab  \tab  \tab    The estimated weight matrix. \tab  \tab  \tab \tab  \tab  \tab   \cr
+\tab \code{C} \tab  \tab  \tab    Square sum of the residuals used as a measure of performance.\tab  \tab  \tab  \tab  \tab  \tab
+}
 }
 \description{
-Takes in the observed data matrix, the number of subclones, the number of features and samples,
-gives the estiamted NMF results.
+This function gives deconvolution results of the observed matrix, along with the square sum of the residuals.
 }
 \details{
-Given an observed matrix, whose rows are mixed samples of unknown number of subclones, returns the
-results of NMF.
+Given an observed matrix, whose columns are mixed samples of known number of subclones, the function returns the
+deconvolution results.
 
-This function will create a bunch of globel variables, named \code{Datause}, \code{Nobs}, \code{Nfeature}, \code{sigma0},
-\code{mu0}, \code{K}, \code{Theta}, \code{W.star}, \code{Z.star},  \code{W_temp}, \code{sigma.square}, \code{data.now}, \code{Z.now}, \code{i}.
-Thus, users should avoid these variable names when using BayRepulsive_unknown, if they don't want the variables to be overwritten.
-Especially \code{i}, which is commonly used in loops.
+The deconvolution model is based on the assumption that
+\deqn{Y = ZW+E.}
+Here \eqn{Y} is the observed matrix \code{DATA};
+\eqn{Z} is the subclone-specific expression matrix;
+\eqn{W} is the weight matrix; \eqn{E} is the matrix whose entries are independent white noises, with unknown variance \eqn{\sigma^{2}}{\sigma^2}.
+We assume each column of \eqn{W}, \eqn{W_j}{Wj} has a prior \eqn{W_j\sim\mathrm{Dir}(\alpha)}{Wj~Dir(\alpha)}, where \eqn{\alpha} is a vector with elements 1.
+We also assume an improper uniform prior for \eqn{\sigma^2}: \eqn{\sigma^2\sim\mathrm{Uniform}(0, 10^6)}{\sigma^2~U(0,10^6)}.
+We use a fixed-size determinant point process \insertCite{kulesza2011k}{BayRepulsive}
+as a prior for the subclone-specific expression matrix \eqn{Z}.
+Suppose there are \eqn{K} subclones and let \eqn{Z_k}{Zk} be the expression profile of subclone \eqn{k}.
+Mean zero multivariate normal density functions are commonly used as quality functions in DPP.
+Since the subclone-specific expression matrix is nonnegative, we cosider a transformation,
+\eqn{\tilde{Z}_k = Z_k-\bar{Y}}{\tilde{Z}k = Zk - \bar{Y}}, where the vector \eqn{\bar{Y}} is the mean of average expression level in the \code{DATA} of each gene.
+The prior of (\eqn{\tilde{Z}_1,\dots, \tilde{Z}_K}{\tilde{Z}1,...,\tilde{Z}K}) is proportional to the determinant of a \eqn{K\times K}{K*K} matrix \eqn{L},
+defined by \eqn{L_{ij} = q(\tilde{Z}_i)\phi(\tilde{Z}_i, \tilde{Z}_j)q(\tilde{Z}_j)}{Lij = q(\tilde{Z}i)\phi(\tilde{Z}i,\tilde{Z}j)q(\tilde{Z}j)},
+where \eqn{\phi(\tilde{Z}_i, \tilde{Z}_j) = \exp\{ - \frac{\|\tilde{Z}_i-\tilde{Z}_j\|^2}{\theta^2}\}}{\phi(\tilde{Z}i,\tilde{Z}j)=exp\{||\tilde{Z}i-\tilde{Z}j||^2 / \theta^2\}}
+and \eqn{q(\tilde{Z}_j)}{q(\tilde{Z}j)} is the density function of a multivariate normal distribution with mean being the zero vector and variance being \eqn{\tau^2 I}.
+Here \eqn{\tau} is the parameter \code{tau} in the function,
+and \eqn{\theta} is an unknown parameter with a prior \eqn{\theta\sim\mathrm{Gamma}(a_{\theta},b_{\theta})}{theta~Gamma(a.theta,b.theta)}.
+Here \eqn{a_\theta}{a.theta} and \eqn{b_\theta}{b.theta} are the parameters \code{a.theta} and \code{b.theta} in the function.
 }
 \examples{
 rm(list=ls())
 library(BayRepulsive)
 data(CCLE)
 set.seed(1)
-Nobs     <- dim(CCLE$DATA)[1]
-Nfeature <- dim(CCLE$DATA)[2]
-error    <- matrix(rnorm(Nobs * Nfeature, mean = 0, sd = 0.1), nrow = Nobs)
-DATA     <- CCLE$DATA + error
-DATA     <- pmax(DATA,0)
-result1  <- BayRepulsive_known(Datause = DATA, K = 3, Nobs = Nobs,
+Nobs     <- 24
+Nfeature <- 100
+K0       <- 3
+### randomly generate weight matrix W for 24 mixing samples
+W        <- matrix(0,nrow = K0, ncol = Nobs)
+for(i in 1:Nobs){
+  Theta <- rgamma(K0,1/K0,1)
+  W[,i] <- Theta/sum(Theta)
+}
+### add some noise
+error    <- t(matrix(rnorm(Nfeature * Nobs, mean = 0, sd = 0.5), nrow = Nobs))
+DATA     <- CCLE$Z\%*\%W + error
+### Note: please make sure that there are no negative values after adding the noise
+result1  <- BayRepulsive_known(DATA = DATA, K = K0, Nobs = Nobs,
                                Nfeature = Nfeature)
-cor(as.vector(result1$W), as.vector(CCLE$W))
+cor(as.vector(result1$W), as.vector(W))
 
-#----------------
-rm(list=ls())
-library(BayRepulsive)
-data(Inhouse)
-Nobs      <- dim(Inhouse$DATA)[1]
-Nfeature  <- dim(Inhouse$DATA)[2]
-result1   <- BayRepulsive_known(Datause = Inhouse$DATA, K=3, Nobs = Nobs,
-                                Nfeature = Nfeature, seed = 12)
-# handle the label swithing issue
-W_est     <- result1$W
-W_est[,1] <- result1$W[,2]
-W_est[,2] <- result1$W[,1]
-cor(as.vector(W_est), as.vector(Inhouse$W))
+}
+\references{
+\insertRef{kulesza2011k}{BayRepulsive}
 }
 \keyword{functions}
